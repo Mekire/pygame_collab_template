@@ -30,7 +30,7 @@ class StateMachine(object):
         if self.state.quit:
             self.done = True
         elif self.state.done:
-            self.flip_state()
+            self.flip_state(now)
         self.state.update(surface, keys, now, dt, scale)
 
     def start_state(self, state_name, now, persist=None):
@@ -49,14 +49,14 @@ class StateMachine(object):
         self.state = instance
         self.state_name = state_name
 
-    def flip_state(self):
+    def flip_state(self, now):
         """
         When a State changes to done necessary startup and cleanup functions
         are called and the current State is changed.
         """
         previous, self.state_name = self.state_name, self.state.next
         persist = self.state.cleanup()
-        self.start_state(self.state_name, persist)
+        self.start_state(self.state_name, now, persist)
         self.state.previous = previous
 
     def get_event(self, event, scale=(1,1)):
