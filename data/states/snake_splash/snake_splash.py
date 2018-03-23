@@ -2,11 +2,11 @@ from random import randint
 
 import pygame as pg
 
-import data.core.state
 from data.core import prepare
+from data.components.state_machine import _State
 
 
-class SnakeSplash(data.core.state.State):
+class SnakeSplash(_State):
     """
     This State is updated while our game shows the splash screen.
     """    

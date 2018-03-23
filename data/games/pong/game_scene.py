@@ -1,11 +1,11 @@
 import pygame as pg
 
-import data.core.state
 from data.core import prepare
+from data.components.state_machine import _State
 from data.components.labels import FlashingText, Label
 
 
-class Scene(data.core.state.State):
+class Scene(_State):
     """
     This State is updated while our game is running.
     The game autodetection requires that the name of this class not be changed.

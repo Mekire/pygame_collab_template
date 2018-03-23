@@ -6,6 +6,7 @@ from collections import OrderedDict
 from importlib import import_module
 
 from data.core import prepare
+from data.components import state_machine
 
 
 class Control(object):
@@ -30,8 +31,9 @@ class Control(object):
         self.keys = pg.key.get_pressed()
         self.state_dict = OrderedDict()
         self.game_thumbs = OrderedDict()
-        self.state_name = None
-        self.state = None
+        self.auto_discovery("states")
+        self.auto_discovery("games")
+        self.state_machine = state_machine.StateMachine()
 
     def auto_discovery(self, scene_folder):
         """
@@ -65,21 +67,16 @@ class Control(object):
             print(template.format(folder))
             raise
 
-    def start_state(self, state_name, persist=None):
+    def start(self, start_state):
         """
-        Start a state.
+        Setup the state machine with the states we autodetected.
+        It also gives the state machine a copy of the game_thumbs dict
+        for convenience.
         """
-        if persist is None:
-            persist = {}
-        try:
-            state = self.state_dict[state_name]
-        except KeyError:
-            print('Cannot find state: {}'.format(state_name))
-            raise RuntimeError
-        instance = state(self)
-        instance.startup(self.now, persist)
-        self.state = instance
-        self.state_name = state_name
+        self.now = pg.time.get_ticks()
+        self.state_machine.setup_states(self.state_dict, start_state)
+        self.state_machine.game_thumbs = self.game_thumbs
+        self.state_machine.start_state(start_state, self.now)
 
     def update(self, dt):
         """
@@ -88,11 +85,10 @@ class Control(object):
         """
         self.screen = pg.display.get_surface()
         self.now = pg.time.get_ticks()
-        if self.state.quit:
+        if self.state_machine.done:
             self.done = True
-        elif self.state.done:
-            self.flip_state()
-        self.state.update(self.render_surf, self.keys, self.now, dt, self.scale)
+        machine_args = self.render_surf, self.keys, self.now, dt, self.scale
+        self.state_machine.update(*machine_args)
 
     def render(self):
         """
@@ -104,16 +100,6 @@ class Control(object):
             pg.transform.smoothscale(*scale_args)
         else:
             self.screen.blit(self.render_surf, (0, 0))
-
-    def flip_state(self):
-        """
-        When a State changes to done necessary startup and cleanup functions
-        are called and the current State is changed.
-        """
-        previous, self.state_name = self.state_name, self.state.next
-        persist = self.state.cleanup()
-        self.start_state(self.state_name, persist)
-        self.state.previous = previous
 
     def event_loop(self):
         """
@@ -132,7 +118,7 @@ class Control(object):
             elif event.type == pg.VIDEORESIZE:
                 self.on_resize(event.size)
                 pg.event.clear(pg.VIDEORESIZE)
-            self.state.get_event(event, self.scale)
+            self.state_machine.get_event(event, self.scale)
 
     def on_resize(self, size):
         """

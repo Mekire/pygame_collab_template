@@ -1,11 +1,11 @@
 import pygame as pg
 
-import data.core.state
 from data.core import prepare
 from data.components.labels import FlashingText, Label
+from data.components.state_machine import _State
 
 
-class HighScores(data.core.state.State):
+class HighScores(_State):
     """
     Shown by clicking the high scores button in the lobby page.
     """

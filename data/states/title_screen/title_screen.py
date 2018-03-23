@@ -1,11 +1,11 @@
 import pygame as pg
 
-import data.core.state
 from data.core import tools, prepare
 from data.components.labels import FlashingText
+from data.components.state_machine import _State
 
 
-class TitleScreen(data.core.state.State):
+class TitleScreen(_State):
     """
     Initial state of the game.
     """

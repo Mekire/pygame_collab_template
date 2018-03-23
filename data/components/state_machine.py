@@ -12,7 +12,6 @@ class StateMachine(object):
         self.state_dict = {}
         self.state_name = None
         self.state = None
-        self.now = None
 
     def setup_states(self, state_dict, start_state):
         """
@@ -23,20 +22,32 @@ class StateMachine(object):
         self.state_name = start_state
         self.state = self.state_dict[self.state_name]
 
-    def update(self, keys, now):
+    def update(self, surface, keys, now, dt, scale):
         """
         Checks if a state is done or has called for a game quit.
         State is flipped if neccessary and State.update is called.
         """
-        self.now = now
         if self.state.quit:
             self.done = True
         elif self.state.done:
             self.flip_state()
-        self.state.update(keys, now)
+        self.state.update(surface, keys, now, dt, scale)
 
-    def draw(self, surface, interpolate):
-        self.state.draw(surface, interpolate)
+    def start_state(self, state_name, now, persist=None):
+        """
+        Start a state.
+        """
+        if persist is None:
+            persist = {}
+        try:
+            state = self.state_dict[state_name]
+        except KeyError:
+            print('Cannot find state: {}'.format(state_name))
+            raise RuntimeError
+        instance = state(self)
+        instance.startup(now, persist)
+        self.state = instance
+        self.state_name = state_name
 
     def flip_state(self):
         """
@@ -45,15 +56,14 @@ class StateMachine(object):
         """
         previous, self.state_name = self.state_name, self.state.next
         persist = self.state.cleanup()
-        self.state = self.state_dict[self.state_name]
-        self.state.startup(self.now, persist)
+        self.start_state(self.state_name, persist)
         self.state.previous = previous
 
-    def get_event(self, event):
+    def get_event(self, event, scale=(1,1)):
         """
         Pass events down to current State.
         """
-        self.state.get_event(event)
+        self.state.get_event(event, scale)
 
 
 class _State(object):
@@ -63,16 +73,17 @@ class _State(object):
     must be overloaded in the childclass.  The startup and cleanup methods
     need to be overloaded when there is data that must persist between States.
     """
-    def __init__(self):
+    def __init__(self, controller, persistant={}):
+        self.controller = controller
         self.start_time = 0.0
         self.now = 0.0
         self.done = False
         self.quit = False
         self.next = None
         self.previous = None
-        self.persist = {}
+        self.persist = persistant
 
-    def get_event(self, event):
+    def get_event(self, event, scale=(1,1)):
         """
         Processes events that were passed from the main event loop.
         Must be overloaded in children.
@@ -95,6 +106,23 @@ class _State(object):
         self.done = False
         return self.persist
 
-    def update(self, keys, now):
-        """Update function for state.  Must be overloaded in children."""
+    def update(self, surface, keys, now, dt, scale):
+        """
+        Update function for state.  Must be overloaded in children.
+        """
+        self.draw(surface)
+
+    def draw(self, surface):
+        """
+        Put all drawing logic here.  Called at the end of the update method.
+        """
         pass
+
+    # Should probably go elsewhere or just be removed.
+    def render_font(self, font, msg, color, center):
+        """
+        Return the rendered font surface and its rect centered on center.
+        """
+        msg = font.render(msg, 1, color)
+        rect = msg.get_rect(center=center)
+        return msg, rect

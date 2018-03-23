@@ -3,14 +3,13 @@ import pygame as pg
 
 from collections import OrderedDict
 
-import data.core.state
-
 from data.core import tools, prepare
 from data.components.labels import GameButton, NeonButton, Button, ButtonGroup
 from data.components.animation import Animation
+from data.components.state_machine import _State
 
 
-class LobbyScreen(data.core.state.State):
+class LobbyScreen(_State):
     """
     This state represents the lobby where the player can choose
     which game they want to play or view their high scores. This is also

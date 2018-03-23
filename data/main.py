@@ -1,6 +1,6 @@
 """
 The main function is defined here. It creates an instance of
-Control and autodetects both core and game states.
+Control starts up the main program.
 """
 
 import cProfile
@@ -12,14 +12,12 @@ from data.core import prepare, tools
 
 def main():
     args = (prepare.CAPTION, prepare.RENDER_SIZE, prepare.RESOLUTIONS)
-    app = data.core.control.Control(*args)
-    app.show_fps = prepare.ARGS["FPS"]
     default_state = "snake_splash"
     straight = prepare.ARGS['straight']
     state = straight or default_state
-    app.auto_discovery("states")
-    app.auto_discovery("games")
-    app.start_state(state)
+    app = data.core.control.Control(*args)
+    app.show_fps = prepare.ARGS["FPS"]
+    app.start(state)
     # Start the main state
     if not prepare.ARGS['profile']:
         app.main()
